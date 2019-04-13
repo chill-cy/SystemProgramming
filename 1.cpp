@@ -8,7 +8,7 @@
 #include<iostream>
 using namespace std;
 int main() {
-
+    cout << "44444"<< endl;
     cout <<"2222" << endl;
     cout <<"111"<<endl;
 	return 0;
