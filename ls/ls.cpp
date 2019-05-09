@@ -6,11 +6,8 @@
  ************************************************************************/
 
 #include <stdio.h>
-
 #include <sys/stat.h>
-
 #include <sys/types.h>
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -26,6 +23,7 @@
 
 using namespace std;
 
+//获得文件权限
 void getmod(int mode, char *mod) {
     if (S_ISREG(mode)) {
         mod[0] = '-';
@@ -42,6 +40,7 @@ void getmod(int mode, char *mod) {
     } else {
         mod[0] = 's';
     }
+	
     if (mode & S_IRUSR) {
         mod[1] = 'r';
     } else {
@@ -58,7 +57,7 @@ void getmod(int mode, char *mod) {
         mod[3] = '-';
     }
 
-if (mode & S_IRGRP) {
+　　if (mode & S_IRGRP) {
         mod[4] = 'r';
     } else {
         mod[4] = '-';
@@ -73,6 +72,7 @@ if (mode & S_IRGRP) {
     } else {
         mod[6] = '-';
     }
+
     if (mode & S_IROTH) {
         mod[7] = 'r';
     } else {
@@ -90,7 +90,7 @@ if (mode & S_IRGRP) {
     }
 }
 
-//判断输入的路径是目录还是文件
+//判断输入的路径是不是目录
 int is_dir(char *is_dirname) {
     struct stat *st = (struct stat *)malloc(sizeof(struct stat));
     stat(is_dirname, st);
@@ -101,7 +101,8 @@ int is_dir(char *is_dirname) {
     }
     free(st);
 }
-//输出文件的各个信息
+
+//输出文件的详细信息
 void showinfo(char *name) {
     struct stat *file = (struct stat *)malloc(sizeof(struct stat));
     if (stat(name, file) < 0) {
@@ -125,7 +126,7 @@ void showinfo(char *name) {
     free(file);
 }
 
-//输出指定目录的所有文件的信息
+//输出目录下的所有文件信息
 void showdirinfo(char *dirname) {
     DIR *dir = opendir(dirname);
     if (dir == NULL) {
@@ -155,7 +156,7 @@ void showdirinfo(char *dirname) {
     chdir(pwd);
 }
 
-//输出文件名称
+//显示文件名称
 void showname(char *name) {
     struct stat *file = (struct stat *)malloc(sizeof(struct stat));
     if (stat(name, file) < 0) {
@@ -165,6 +166,7 @@ void showname(char *name) {
     printf("%s\n", name);
 }
 
+//获得屏幕大小
 int getsize() {
     struct winsize size;
     if (isatty(STDOUT_FILENO) == 0) {
@@ -177,6 +179,7 @@ int getsize() {
     return size.ws_row;
 }
 
+//得到所有文件中最大长度的文件
 int maxname(string filename[3005], int sum) {
     int max = filename[0].length();
     for (int i = 1; i < sum; i++) {
@@ -186,7 +189,7 @@ int maxname(string filename[3005], int sum) {
     }
     return max;
 }
-
+//输出文件名
 void print_name(string filename[3005], int sum) {
     int max_namelen;//所有文件的最大长度
     max_namelen = maxname(filename, sum);
@@ -217,6 +220,7 @@ void print_name(string filename[3005], int sum) {
     }
 }
 
+//得到目录下的文件名
 void getdirname(char *dirname, string filename[3005], int *sum) {
     DIR *dir = opendir(dirname);
     if (dir == NULL) {
@@ -240,6 +244,7 @@ void getdirname(char *dirname, string filename[3005], int *sum) {
     sort(filename, filename + count);
 }
 
+//显示目录下的文件名
 void showdirname (char *dirname) {
     string filename[3005];
     int sum = 0;
@@ -247,6 +252,7 @@ void showdirname (char *dirname) {
     print_name(filename, sum);
 }
 
+//加选项
 void is_option(int argc, char *argv[]) {
     char point[] = ".";
     if (strcmp(argv[1] + 1, "al") == 0) {
