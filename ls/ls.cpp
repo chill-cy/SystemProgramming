@@ -56,8 +56,8 @@ void getmod(int mode, char *mod) {
     } else {
         mod[3] = '-';
     }
-
-　　if (mode & S_IRGRP) {
+    
+    if (mode & S_IRGRP) {
         mod[4] = 'r';
     } else {
         mod[4] = '-';
@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
     if (argc == 1) {
         showdirname(point);
     } else if (argc >= 2){
-        if (strncmp(argv, '-', 1) == 0) {
+        if (strncmp(argv[1], "al", 1) == 0) {
             is_option(argc, argv);         
         } else {
             for (int i = 1; i < argc; i++) {
