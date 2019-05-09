@@ -189,6 +189,7 @@ int maxname(string filename[3005], int sum) {
     }
     return max;
 }
+
 //输出文件名
 void print_name(string filename[3005], int sum) {
     int max_namelen;//所有文件的最大长度
@@ -280,7 +281,7 @@ int main(int argc, char *argv[]) {
     if (argc == 1) {
         showdirname(point);
     } else if (argc >= 2){
-        if (strncmp(argv[1], "al", 1) == 0) {
+        if (strncmp(argv[1], "-", 1) == 0) {
             is_option(argc, argv);         
         } else {
             for (int i = 1; i < argc; i++) {
