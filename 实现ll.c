@@ -673,9 +673,5 @@ drwxrwxrwx. 2 root root  4096 May  5 11:38 mor
 -rwxr-xr-x  1 root root 13072 Aug 16 21:04 my_ls
 -rw-r--r--  1 root root 23586 Aug 16 21:02 stat.txt
 drwxrwxrwx. 3 root root  4096 May  5 11:38 teacher
---------------------- 
-作者：北纬34度停留 
-来源：CSDN 
-原文：https://blog.csdn.net/fsx2550553488/article/details/81748985 
-版权声明：本文为博主原创文章，转载请附上博文链接！
+----------------
 */
