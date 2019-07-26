@@ -119,7 +119,7 @@ int main() {
                 return -1;
             } 
             initaddr.sin_addr.s_addr = htonl(i);
-            Node *p = (Node *)malloc(sizeof(Node));
+            Node *p = (Node *)malloc(sizeof(Node))
             p->client_addr = initaddr;
             p->next = NULL;
             p->node_sock = -1;

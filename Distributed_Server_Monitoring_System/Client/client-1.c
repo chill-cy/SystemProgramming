@@ -21,7 +21,6 @@ int main() {
             perror("socket_create");
             exit(1);
         }
-
         while (1) {
             if ((sockfd = accept(listen, NULL, NULL)) < 0) {
                 perror("accept");
