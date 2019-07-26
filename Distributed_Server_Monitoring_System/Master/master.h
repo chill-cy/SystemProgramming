@@ -39,7 +39,6 @@ int do_event(struct sockaddr_in);
 int socket_connect1(struct sockaddr_in);
 
 
-
 int insert(LinkedList head, Node *node) {
     Node *p = head;
     while (p->next != NULL) {
@@ -68,7 +67,7 @@ void print_linkedlist(LinkedList head){
     }
 }
 
-
+//非阻塞连接每个结点
 int check_connect(struct sockaddr_in addr, long timeout){
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -101,13 +100,15 @@ int check_connect(struct sockaddr_in addr, long timeout){
 }
 
 
-
+//心跳遍历所有结点
 void  *heartbeat_all(void *arg) {
     struct HEART *heart = (struct HEART *)arg;
 
     while (1) {
+        //遍历所有链表
         for (int i = 0; i < heart->ins; i++) {
             Node *p = heart->head[i];
+            //遍历每个链表结点
             while (p->next != NULL) {
                 if (!check_connect(p->next->client_addr, heart->timeout)) {
                     printf("%s:%d \033[31mdeleting\033[0m ... \n", inet_ntoa(p->next->client_addr.sin_addr), ntohs(p->next->client_addr.sin_port));
@@ -128,7 +129,7 @@ void  *heartbeat_all(void *arg) {
 }
 
 
-
+//加入日志信息
 void *work(void *arg) {
     struct WORK *inarg = (struct WORK *)arg;
     char log[50] = {0};

@@ -7,7 +7,6 @@
 
 #include "master.h"
 
-
 int main() {
     char *config = "./pihealthd.conf";
     int server_listen;
@@ -20,15 +19,20 @@ int main() {
     char tmp[20] = {0};
     get_conf_value(config, "INS", tmp);
     Ins = atoi(tmp);
+    memset(tmp, 0, sizeof(tmp));
     get_conf_value(config, "From", tmp);
     strcpy(FromIp, tmp);
+    memset(tmp, 0, sizeof(tmp));
     get_conf_value(config, "To", tmp);
     strcpy(ToIp, tmp);
+    memset(tmp, 0, sizeof(tmp));
     get_conf_value(config, "ClientHeart", tmp);
     CHPort = atoi(tmp);
+    memset(tmp, 0, sizeof(tmp));
     get_conf_value(config, "MasterPort", tmp);
     Port = atoi(tmp);
 
+    memset(tmp, 0, sizeof(tmp));
     get_conf_value(config, "TimeOut", tmp);
     TimeOut = atol(tmp);
 
@@ -102,16 +106,31 @@ int main() {
         perror("server_listen");
         exit(1);
     }
-
-    do_epoll(server_listen, linkedlist, sum, Ins);
-
-
+   //端口被占用了怎么办
+    //do_epoll(server_listen, linkedlist, sum, Ins);
+    while (1) {
+        epoll(int server_listen, LinkedList, sum, Ins) {
+            struct sockaddr_in client_addr;
+            printf("wait for client...\n");
+            unsigned int addrlen = sizeof(client_addr);
+            int client_socket = accept(server_listen, (struct sockaddr *)&client_addr, &addrlen);
+            if (client_socket < 0) {
+                perror("accept");
+                return -1;
+            } 
+            initaddr.sin_addr.s_addr = htonl(i);
+            Node *p = (Node *)malloc(sizeof(Node));
+            p->client_addr = initaddr;
+            p->next = NULL;
+            p->node_sock = -1;
+            int sub = find_min(sum, Ins);
+            insert(linkedlist[sub], p);
+            sum[sub]++;
+        } 
+    }
     for (int i = 0; i < Ins; i++) {
         pthread_join(t[i], NULL);
     }
     pthread_join(HeartTid, NULL);
-
     return 0;
-
 }
-
