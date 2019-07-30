@@ -20,19 +20,23 @@ int main() {
     get_conf_value(config, "INS", tmp);
     Ins = atoi(tmp);
     memset(tmp, 0, sizeof(tmp));
+    
     get_conf_value(config, "From", tmp);
     strcpy(FromIp, tmp);
     memset(tmp, 0, sizeof(tmp));
+    
     get_conf_value(config, "To", tmp);
     strcpy(ToIp, tmp);
     memset(tmp, 0, sizeof(tmp));
+    
     get_conf_value(config, "ClientHeart", tmp);
     CHPort = atoi(tmp);
     memset(tmp, 0, sizeof(tmp));
+    
     get_conf_value(config, "MasterPort", tmp);
     Port = atoi(tmp);
-
     memset(tmp, 0, sizeof(tmp));
+    
     get_conf_value(config, "TimeOut", tmp);
     TimeOut = atol(tmp);
 
@@ -108,7 +112,7 @@ int main() {
     }
    //端口被占用了怎么办
     //do_epoll(server_listen, linkedlist, sum, Ins);
-    while (1) {
+ /*   while (1) {
         epoll(int server_listen, LinkedList, sum, Ins) {
             struct sockaddr_in client_addr;
             printf("wait for client...\n");
@@ -127,7 +131,7 @@ int main() {
             insert(linkedlist[sub], p);
             sum[sub]++;
         } 
-    }
+    }*/
     for (int i = 0; i < Ins; i++) {
         pthread_join(t[i], NULL);
     }
