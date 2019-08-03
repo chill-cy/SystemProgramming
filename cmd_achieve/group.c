@@ -24,12 +24,18 @@ int main() {
         }
     }
     else if(pid > 0) {
+        printf("n = %d\n", )
         pid_t pid_c;
         while (1) {
-            pid_c = wait(NULL);
+            printf("I am parent \n");
+            pid_c = waitpid(0, NULL, WNOHANG);
             if (pid_c == -1) {
-                break;
-            } else {
+                n++;
+                if (n == 3) 
+                    break;
+            } 
+            if (pid_c > 0)
+            else {
                 printf("wait for child %d\n", pid_c);
             }
         }
