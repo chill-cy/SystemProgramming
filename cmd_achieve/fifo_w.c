@@ -20,7 +20,7 @@ void sys_err(char *str, int exitno) {
 
 int main(int argc, char *argv[]) {
     int fd;
-    char buf[1024] = "hello xwp";
+    char buf[1024] = "hello";
     if (argc < 2) {
         printf("./a.out fifoname\n");
         exit(1);
