@@ -30,8 +30,6 @@ struct Data {
     int port;
 };
 
-
-
 int insert(LinkList head, Node *node);
 void output(LinkList head);
 int find_min(int *sum, int ins);
@@ -134,7 +132,82 @@ int check_connect(struct sockaddr_in addr, long timeout) {
 }
 
 void *do_data(void *arg) {
-    struct  
+    struct Data *darg = (struct Data *)arg;
+    char log[50] = {0};
+    //表示第几号线程
+    sprintf(log, "./pth %d.log", darg->ind);
+    //参数：监听的数目大小，创建好后会返回fd,使用完epoll后最好需要关闭？＃＃＃
+    int epollfd = epoll_create(10000);
+    //
+    struct epoll_event ev, events[MAXCLIENT];
+
+    while (1) {
+        //a+打开可读写文件，文件不存在创建该文件，文件存在，写入的数据会被追加到文件尾后，即文件原先的内容会被保留
+        FILE *fp = fopen(log, "a+");
+        //遍历链表,将连接加到epoll池中
+        Node *p = darg->head;//记录表头
+        while (p->next) {//遍历表中每个结点
+            int askfd = socket(AF_INET, SOCK_STREAM, 0);
+            if (askfd < 0) {
+                printf("Error socket on askfd");
+                p = p->next;
+                continue;
+            }
+            //设置非阻塞，
+            unsigned long ul = 1;
+            ioctl(askfd, FIONBIO, &ul);
+            struct sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(darg->port);
+            addr.sin_addr = p->next->addr.sin_addr;
+            connect(askfd, (struct sockaddr *)&addr, sizeof(addr));
+            fprintf(fp, "%s : %d login\n", inet_ntoa(addr.sin_addr), darg->port);
+            //数据可写？？？
+            ev.events = EPOLLOUT;
+            ev.data.fd = askfd;
+            //epoll_ctl注册,修改，删除，当前使用注册宏对askfd注册加入到epollfd中
+            epoll_ctl(epollfd, EPOLL_CTL_ADD, askfd, &ev);
+            //将创建好的已连接的套接字加入到链表结点p
+            p->fd = askfd;
+            p = p->next;
+        }
+        //将有变化的加入events事件池中,返回值：发生的事件数
+        int reval = epoll_wait(epollfd, events, MAXCLIENT, 3 * 1000);
+        if (reval < 0) {
+            perror("epoll_wait");
+            fclose(fp);
+            return NULL;
+        } else if (reval == 0) {//没有人连接成功，
+            sleep(5);
+            continue;
+        }
+
+        for (int i = 0; i < reval; i++) {
+            //是否可写
+            int clientfd = events[i].data.fd;
+            if (events[i].events & EPOLLOUT) {
+                unsigned long ul = 0;
+                //将套接字变为阻塞，
+                ioctl(clientfd, FIONBIO, &ul);
+                char buff[BUFFSIZE] = {0};
+                strcpy(buff, "hello");
+                send(clientfd, buff, strlen(buff), 0);
+                memset(buff, 0, sizeof(buff));
+                int k = recv(clientfd, buff, sizeof(buff), 0);
+                if (k > 0) {
+                    printf("%s\n", buff);
+                }
+            }
+            struct epoll_event em;
+            em.data.fd = clientfd;
+            //重新注册,MOD或删除DEL都可以,下次关注clientfd时需要重新设置clientfd的事件类型
+            epoll_ctl(epollfd, EPOLL_CTL_DEL, clientfd, &em);
+            close(clientfd);
+        }
+        fclose(fp);
+        sleep(5);
+    }
+
 }
 
 void listen_epoll(int listenfd, LinkList *linklist, int *sum, int ins, int heartPort) {

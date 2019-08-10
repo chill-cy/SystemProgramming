@@ -27,9 +27,10 @@ struct Heart {
 struct Data {
     LinkList head;
     int ind;//当前几号线程
-    int dataport;
-    int ctlport;
+    int port;
 };
+
+
 
 int insert(LinkList head, Node *node);
 void output(LinkList head);
@@ -60,15 +61,14 @@ int insert(LinkList head, Node *node) {
 
 void output(LinkList head) {
     Node *p = head;//虚拟头结点不存值
-    //当前是第几个人
     int cnt = 0;
     while (p->next) {
-        //将网络字节序转化成本地字符串
         printf("[%d] : %s\n", ++cnt, inet_ntoa(p->next->addr.sin_addr));
         p = p->next;
     }
-}
 
+}
+//１－－－服务端主动心跳
 void *do_heart(void *arg) {
     struct Heart *harg = (struct Heart *)arg;
     while (1) {
@@ -91,16 +91,13 @@ void *do_heart(void *arg) {
         printf("\n");
     }
 }
-
 int check_connect(struct sockaddr_in addr, long timeout) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket");
         return -1;
     }
-    //设置非阻塞
     unsigned long ul = 1;
-    //0是阻塞
     ioctl(sockfd, FIONBIO, &ul);
     struct timeval tm;
     tm.tv_sec = 0;
@@ -114,7 +111,6 @@ int check_connect(struct sockaddr_in addr, long timeout) {
     int len = sizeof(int);
     if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         if (select(sockfd + 1, NULL, &wset, NULL, &tm) > 0) {
-            //确定是否真正连接,获取套接字状态，SO_ERROR查看具体出错状态，error返回负值出错，len获取error的长度
             getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, (socklen_t *)&len);
             //连接成功
             if (error == 0) {
@@ -133,95 +129,14 @@ int check_connect(struct sockaddr_in addr, long timeout) {
 
 void *do_data(void *arg) {
     struct Data *darg = (struct Data *)arg;
-    char filename[6][20] = {"cpu.log", "disk.log", "mem.log", "user.log", "sys.log", "enermy.log"};
-    //每遍历一遍链表睡眠１５秒
-    while (1) {
-        sleep(15);
-        Node *p = darg->head;
-        while (p->next) {
-            int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-            if (sockfd < 0) {
-                perror("socket");
-                p = p->next;
-                continue;
-            }
-            struct sockaddr_in addr;
-            addr.sin_family = AF_INET;
-            addr.sin_port = htons(darg->ctlport);
-            addr.sin_addr = p->next->addr.sin_addr;
-            if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-                perror("connect");
-                printf("%d --- %s\n", ntohs(addr.sin_port), inet_ntoa(addr.sin_addr));
-                close(sockfd);
-                p = p->next;
-                continue;
-            }
-            //1--请求数据
-            for (int i = 100; i < 106; i++) {
-                int ret = send(sockfd, &i, sizeof(int), 0);
-                if (ret < 0) {
-                    perror("send");
-                    continue;
-                }
-                int ack = 0;
-                int rec = recv(sockfd, &ack, sizeof(int), 0);
-                if (rec <= 0) {
-                    perror("recv");
-                    continue;
-                }
-                if (!ack) continue;
-                
-                int recvfd = socket_connect(darg->dataport, inet_ntoa(p->next->addr.sin_addr));
-                if (recvfd < 0) {
-                    perror("socket_connect");
-                    continue;
-                }
-                char fdir[100] = {0};
-                //以ip地址命名成文件夹
-                sprintf(fdir, "./%s", inet_ntoa(p->next->addr.sin_addr));
-                if (access(fdir, F_OK) < 0) {
-                    //当前路径下没有fdir文件，创建新的
-                    int status  = mkdir(fdir, 0755);
-                    if (status < 0) {
-                        perror("mkdir");
-                        close(recvfd);
-                        continue;
-                    }
-                }
-                //创建文件夹成功,
-                char filepath[100] = {0};
-                sprintf(filepath, "%s/%s", fdir, filename[i - 100]);
-                char buff[BUFFSIZE] = {0};
-                FILE *fw = fopen(filepath, "a+");
-                while (1) {
-                    int k = recv(recvfd, buff, sizeof(buff), 0);
-                    if (k <= 0) {
-                        //文件传输接束
-                        break;
-                    }
-                    fprintf(fw, "%s", buff);
-                    memset(buff, 0, sizeof(buff));
-                }
-                fclose(fw);
-                close(recvfd);
-            }
-            close(sockfd);
-            p = p->next;
-        }
-    }
-}
-/*    char log[50] = {0};
+    char log[50] = {0};
     //表示第几号线程
     sprintf(log, "./pth %d.log", darg->ind);
-    //参数：监听的数目大小，创建好后会返回fd,使用完epoll后最好需要关闭？＃＃＃
     int epollfd = epoll_create(10000);
-    //
     struct epoll_event ev, events[MAXCLIENT];
 
     while (1) {
-        //a+打开可读写文件，文件不存在创建该文件，文件存在，写入的数据会被追加到文件尾后，即文件原先的内容会被保留
         FILE *fp = fopen(log, "a+");
-        //遍历链表,将连接加到epoll池中
         Node *p = darg->head;//记录表头
         while (p->next) {//遍历表中每个结点
             int askfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -230,7 +145,6 @@ void *do_data(void *arg) {
                 p = p->next;
                 continue;
             }
-            //设置非阻塞，
             unsigned long ul = 1;
             ioctl(askfd, FIONBIO, &ul);
             struct sockaddr_in addr;
@@ -239,10 +153,8 @@ void *do_data(void *arg) {
             addr.sin_addr = p->next->addr.sin_addr;
             connect(askfd, (struct sockaddr *)&addr, sizeof(addr));
             fprintf(fp, "%s : %d login\n", inet_ntoa(addr.sin_addr), darg->port);
-            //数据可写？？？
             ev.events = EPOLLOUT;
             ev.data.fd = askfd;
-            //epoll_ctl注册,修改，删除，当前使用注册宏对askfd注册加入到epollfd中
             epoll_ctl(epollfd, EPOLL_CTL_ADD, askfd, &ev);
             //将创建好的已连接的套接字加入到链表结点p
             p->fd = askfd;
@@ -260,11 +172,9 @@ void *do_data(void *arg) {
         }
 
         for (int i = 0; i < reval; i++) {
-            //是否可写
             int clientfd = events[i].data.fd;
             if (events[i].events & EPOLLOUT) {
                 unsigned long ul = 0;
-                //将套接字变为阻塞，
                 ioctl(clientfd, FIONBIO, &ul);
                 char buff[BUFFSIZE] = {0};
                 strcpy(buff, "hello");
@@ -277,66 +187,64 @@ void *do_data(void *arg) {
             }
             struct epoll_event em;
             em.data.fd = clientfd;
-            //重新注册,MOD或删除DEL都可以,下次关注clientfd时需要重新设置clientfd的事件类型
             epoll_ctl(epollfd, EPOLL_CTL_DEL, clientfd, &em);
             close(clientfd);
         }
         fclose(fp);
         sleep(5);
     }
-}*/
+
+}
 
 void listen_epoll(int listenfd, LinkList *linklist, int *sum, int ins, int heartPort) {
     unsigned long ul = 1;
-    //设为非阻塞
     ioctl(listenfd, FIONBIO, &ul);
     int epollfd = epoll_create(MAXCLIENT);
     if (epollfd < 0) {
         perror("epoll_create");
-        //若用进程写不可直接退出
-        exit(1);
+        return ;
     }
-    struct epoll_event ev, events[MAXCLIENT];
+    //ev是注册listenfd
+    struct epoll_event events[MAXCLIENT], ev;
     ev.data.fd = listenfd;
-    // EPOLLIN连接到达，有数据来临，EPOLLOUT有数据要写
     ev.events = EPOLLIN;
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listenfd, &ev) < 0) {
         perror("epoll_ctl");
-        exit(1);
+        return ;
     }
     while (1) {
-        //－１一直阻塞,等待人连
-        int reval = epoll_wait(epollfd, events, MAXCLIENT, -1);
-        //防错
+        int reval = epoll_wait(epollfd, events, MAXCLIENT, -1);//没有消息一直等待人上线
         if (reval < 0) {
             perror("epoll_wait");
-            exit(1);
-        } else if (reval == 0) {
+            close(listenfd);
+            return ;
+        } else if (reval == 0) {//0超时
             continue;
         }
+        
         for (int i = 0; i < reval; i++) {
-            //触发事件有人真正连接
-            if (events[i].data.fd = listenfd && events[i].events & EPOLLIN) {
+            if (events[i].data.fd == listenfd && events[i].events & EPOLLIN) {
                 struct sockaddr_in addr;
+                //tcp 等待连入
                 socklen_t len = sizeof(addr);
                 int newfd = accept(listenfd, (struct sockaddr *)&addr, &len);
                 if (newfd < 0) {
                     perror("accept");
-                    exit(1);
+                    continue;
                 }
-                //加入
-                int sub = find_min(sum, ins);
                 Node *p = (Node *)malloc(sizeof(Node));
-                //将整形转成网络自节序
                 addr.sin_port = htons(heartPort);
                 p->fd = newfd;
+                p->next = NULL;
                 p->addr = addr;
+                int sub = find_min(sum, ins);
                 insert(linklist[sub], p);
                 sum[sub] += 1;
-                printf("someone come in\n");
+                printf("some join success\n");
                 close(newfd);
             }
         }
     }
-    close(listenfd);
+    close (listenfd);
+    
 }

@@ -31,6 +31,8 @@ int main() {
     loadPort = atoi(tmp);
     memset(tmp, 0, sizeof(tmp));
 
+    struct 
+
     pid_t pid;
     pid = fork();
 
@@ -40,7 +42,21 @@ int main() {
         wait(&pid);
     } else {
         //监听心跳
-        recv_heart(heartPort);
+        pid_t pid_1 = fork();
+        if (pid_1 > 0) {
+            recv_heart(heartPort);
+            //等待孙子进程接束，收尸
+            wait(&pid_1);
+            //保证其正常退出，让其上一层为其收尸
+            exit(0);
+        } else {
+            //while (1) {
+                //只执行一次上线,
+                //条件触发  
+            //    to_load(ip, loadPort);
+            //}
+            exit(0);
+        }
     }
     return 0;
 }

@@ -6,7 +6,7 @@
  ************************************************************************/
 
 #include <stdio.h>
-#include "master.h"
+#include "master1.h"
 
 int main() {
     //从文件中将配置信息取出
@@ -14,7 +14,7 @@ int main() {
     long int timeout;
     char startIp[20] = {0}, endIp[20] = {0};
     //并发度,3个端口，心跳端口, 数据请求端口，等待加入端口
-    int Ins, heartport, dataport, listenport;
+    int Ins, heartport, dataport, listenport, ctlPort;
     //每次需要清空
     char reval[20] = {0};
     //取并发量，从config路径取，取INS的值，赋给reval
@@ -34,6 +34,10 @@ int main() {
     listenport = atoi(reval);
     memset(reval, 0, sizeof(reval));
     
+    get_conf_value(config, "CtlPort", reval);
+    ctlPort = atoi(reval);
+    memset(reval, 0, sizeof(reval));
+
     get_conf_value(config, "StartIp", reval);
     strcpy(startIp, reval);
     memset(reval, 0, sizeof(reval));
@@ -106,7 +110,8 @@ int main() {
     for (int i = 0; i < Ins; i++) {
         darg[i].head = linklist[i];//第i条链表的头结点地址
         darg[i].ind = i;//第i条链表
-        darg[i].port = dataport;//数据请求端口
+        darg[i].dataport = dataport;//数据请求端口
+        darg[i].ctlport = ctlPort;
         pthread_create(&pth_data[i], NULL, do_data, (void *)&darg[i]);
     }
     //先绑定，创建监听套接字
