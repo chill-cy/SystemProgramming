@@ -1,31 +1,37 @@
+/*************************************************************************
+	> File Name: util.c
+	> Author:jiangxiaoyu 
+	> Mail:2291372880@qq.com 
+	> Created Time: 2019年10月13日 星期日 22时48分31秒
+ ************************************************************************/
 
 #include <stdio.h>
 #include "util.h"
 
 int get_conf_value(char *file, char *key, char *value) {
     FILE *fp = NULL;
-    char *line = NULL, *substr = NULL;
-    size_t n,len = 0;
-    ssize_t read;
     if (key == NULL || value == NULL) {
-        printf("error\n");
+        printf("failed to get value\n");
         return -1;
     }
     fp = fopen(file, "r");
     if (fp == NULL) {
-        printf("Open file failed !\n");
+        printf("open file failed\n");
         return -1;
     }
-    while((read = getline(&line, &n, fp)) >= 0) {
+    ssize_t read;
+    size_t n, len;
+    char *line = NULL, *substr = NULL;
+    while ((read = getline(&line, &n, fp)) >= 0) {
         substr = strstr(line, key);
         if (substr == NULL) continue;
         len = strlen(key);
         if (line[len] != '=') continue;
-        strncpy(value, line + len+1, (int)read -len - 2);
+        strncpy(value, line + len + 1, (int)read- len - 2);
         break;
     }
     if (value == NULL) {
-        printf("not found!\n");
+        printf("not found key\n");
         return -1;
     }
     free(line);
@@ -33,102 +39,61 @@ int get_conf_value(char *file, char *key, char *value) {
     return 0;
 }
 
-char *my_ntoa(struct in_addr in) {
-    static char ip[20] = {0} ;
-    int a = in.s_addr >> 24;
-    int b = (in.s_addr >> 16) &0xff;
-    int c = (in.s_addr >> 8) &0xff;
-    int d = (in.s_addr) &0xff;
-    sprintf(ip, "%d.%d.%d.%d",d, c, b, a);
-    return ip;
-}
-
 int socket_create(int port) {
     int socketfd;
-    if((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         return -1;
     }
-    int yes = 1 ,len = sizeof(int);
-    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+    int flag = 1, len = sizeof(flag);
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &flag, len) < 0) {
         close(socketfd);
-        perror("setsockopt() error\n");
+        perror("setsockopt");
         return -1;
     }
-
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     if (bind(socketfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        close(socketfd);
+        perror("ERROR bind on socketfd");
         return -1;
     }
-    if(listen(socketfd, 200)<0) {
-        close(socketfd);
-        return -1;
-    }
+    listen(socketfd, 2000);
     return socketfd;
 }
 
-int socket_connect(int port, char *host) {
+int socket_connect(int port, char *ip) {
     int socketfd;
     if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("failed to socket\n");
         return -1;
     }
     struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr(host);
+    addr.sin_addr.s_addr = inet_addr(ip);
     if (connect(socketfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        printf("failed to connect\n");
         return -1;
     }
     return socketfd;
 }
 
-int socket_connect_ioc(int port, char *host, int sec, double usec) {
-    int sockfd;
-    struct timeval tm;
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        return -1;
-    }
-    unsigned long ul = 1;
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr(host);
-    ioctl (sockfd, FIONBIO, &ul);
-    if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        if (errno == EINPROGRESS){
-            int error;
-            int len = sizeof(int);
-            fd_set wfds;
-            FD_ZERO(&wfds);
-            FD_SET(sockfd, &wfds);
-            tm.tv_sec = sec;
-            tm.tv_usec = usec;
-            if (select(sockfd + 1, NULL, &wfds, NULL, &tm) > 0) {
-                getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, (socklen_t *) &len);
-                if (error < 0) {
-                    close(sockfd);
-                    return -1;
-                }
-            } else {
-                close(sockfd);
-                return -1;
-            }
-        } else {
-            close(sockfd);
-            return -1;
-        } 
-    }
-    ul = 0;
-    ioctl(sockfd, FIONBIO, &ul);
-    return sockfd; 
+int write_log(char *path, const char *format, ...) {
+    va_list arg;
+    va_start(arg, format);
+    time_t timep;
+    time(&timep);
+    struct tm *p;
+    p = gmtime(&timep);
+    FILE *fp = fopen(path, "a+");
+    fprintf(fp, "[%d年-%d月-%d日 ", (1900+p->tm_year), (1+p->tm_mon), p->tm_mday);
+    fprintf(fp, "%d时-%d分-%d秒]", (p->tm_hour+8), p->tm_min, p->tm_sec);
+    int k = vfprintf(fp, format, arg);
+    fprintf(fp, "\n");
+    fclose(fp);
+    va_end(arg);
+    return k;
 }
-
-
-
 

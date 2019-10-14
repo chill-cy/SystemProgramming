@@ -1,3 +1,11 @@
+/*************************************************************************
+	> File Name: util.h
+	> Author:jiangxiaoyu 
+	> Mail:2291372880@qq.com 
+	> Created Time: 2019年10月13日 星期日 22时48分51秒
+ ************************************************************************/
+
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -6,17 +14,24 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
-#include <sys/ioctl.h>
 #include <errno.h>
+#include <pwd.h>
+#include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/epoll.h>
 #include <sys/file.h>
 #include <sys/stat.h>
-#ifndef _UNTIL_H
-#define _UNTIL_H
+#include <stdarg.h>
+#include <time.h>
+#include <linux/limits.h>
+
+
+#ifndef _UTIL_H
+#define _UTIL_H
 int get_conf_value(char *file, char *key, char *value);
-char *my_ntoa(struct in_addr in);
 int socket_create(int port);
-int socket_connect(int port, char *host);
-int socket_connect_ioc(int port, char *host, int sec, double usec);
+int socket_connect(int port, char *ip);
+int write_log(char *path, const char *format, ...);
+
 #endif
+
