@@ -1,35 +1,60 @@
 #!/bin/bash
-time=$(date "+%Y-%m-%d__%H:%M:%S")
-hostname=$(hostname)
-os=$(cat /etc/issue | cut -d " " -f 1-3 | tr " " "_")
-kernel=$(cat /proc/version | cut -d " " -f 3)
-runtime=$(uptime | tr ":" " " | awk '{printf("%s_%s_%s_%s_hours,_%s_minustes %s %s %s", $4, $5, $6, $1, $2, $13, $14, $15)}')
-disk=($(df -m | grep "^/dev" | awk '{a+=$2;b+=$4}END{printf("%d %d", a, (a-b)/a*100)}'))
-mem=($(free -m | head -2 | tail -1 | awk '{printf("%d %d", $2, $3/$2)}'))
-true_temp=$(cat /sys/class/thermal/thermal_zone0/temp)
-temp=$(awk -v x=${true_temp} -v y=1000 'BEGIN {printf "%.2f\n",x/y}')
-if [[ ${disk[1]} -lt 80 ]]; then
-    disk_alert="normal";
-elif [[ ${disk[1]} -lt 90 ]]; then
-    disk_alert="note"
+#时间
+date=`date +"%Y-%m-%d__%H:%M:%S"`
+#名字
+UserName=`hostname`
+#OS版本
+UserOS=(`cat /etc/issue | awk '{printf("%s %s %s\n", $1,$2,$3)}'`)
+#内核
+NHe=(`uname -a | awk '{printf("%s", $3)}'`)
+#启动时间
+Uptime=(`uptime -p |tr -s " " "_"`)
+#平均负载
+load=`cat /proc/loadavg | cut -d ' ' -f 1-3`
+
+Disk=(`df -m | grep ^/dev | awk  '{printf("%s %s\n",$2, $4)}'`)
+Diskuse=0
+DiskFree=0
+for ((i = 0; i < ${#Disk[@]}; i+=2)) do
+    ((Diskuse+=${Disk[i]}))
+    ((DiskFree+=${Disk[i+1]}))
+done
+#磁盘总量, 磁盘空闲
+#磁盘已利用率
+a=$((100-$DiskFree*100/$Diskuse))
+#内存大小
+neicun=(`free -m | head -n 2 | tail -n 1 | awk '{printf("%d %d"), $3,$2}'`)
+#内存已用
+NClv=`echo "scale=1;${neicun[0]}*100/${neicun[1]}" | bc`
+
+
+#cpu温度
+cpuTemp=`cat /sys/class//thermal/thermal_zone0/temp`
+cpuTemp=`echo "scale=2;$cpuTemp/1000" | bc`
+
+
+
+if [[ `echo $cpuTemp '>=' 70 | bc -l` == 1 ]];then
+        warn3="warning"
+elif [[ `echo $cpuTemp '>=' 50 | bc -l` == 1 ]];then
+        warn3="note"
 else
-    disk_alert="warning"
+        warn3="normal"
 fi
 
-if [[ ${mem[1]} -lt 70 ]]; then
-    mem_alert="normal";
-elif [[ ${mem[1]} -lt 80 ]]; then
-    mem_alert="note"
+if [[ `echo $NClv '>=' 80 | bc -l` == 1 ]];then
+        warn2="warning"
+elif [[ `echo $NClv '>=' 70 | bc -l` == 1 ]];then
+        warn2="note"
 else
-    mem_alert="warning"
+        warn2="normal"
+fi
+if [[ `echo $a '>=' 90 | bc -l` == 1 ]];then
+        warn1="warning"
+elif [[ `echo $a '>=' 80 | bc -l` == 1 ]];then
+        warn1="note"
+else
+        warn1="normal"
 fi
 
-if [[ ${true_temp} -lt 50000 ]]; then
-    cpu_alert="normal";
-elif [[ ${true_temp} -lt 70000 ]]; then
-    cpu_alert="note"
-else
-    cpu_alert="warning"
-fi
-echo "${time} ${hostname} ${os} ${kernel} ${runtime} ${disk[0]} ${disk[1]}% ${mem[0]} ${mem[1]}% ${temp} ${disk_alert} ${mem_alert} ${cpu_alert}"
-
+echo "${date} ${UserName} ${UserOS[0]}_${UserOS[1]}_${UserOS[2]} ${NHe} ${Uptime} ${load} ${Diskuse} ${a}% ${neicun[1]} ${NClv}% ${cpuTemp} ${warn1} ${warn2} ${warn3}"
