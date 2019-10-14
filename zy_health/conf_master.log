@@ -1,7 +1,0 @@
-INS=3
-HeartPort=8520
-DataPort=8527
-ListenPort=8522
-StartIp=192.168.2.0
-EndIp=192.168.2.18
-TimeOut=300000
